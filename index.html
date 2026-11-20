@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Program Pengelolaan Data Mahasiswa</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: Arial, sans-serif; background: #f1f5fb;
+      color: #172554;
+    }
+    header {
+      background: #123b86; color: white; padding: 25px 16px;
+      text-align: center;
+    }
+    header h1 { margin: 0 0 8px; font-size: 25px; }
+    header p { margin: 0; }
+    main { width: min(1000px, 94%); margin: 25px auto; }
+    .card {
+      background: white; padding: 20px; margin-bottom: 20px;
+      border-radius: 12px; box-shadow: 0 3px 12px #102a5615;
+    }
+    h2 { margin-top: 0; font-size: 20px; }
+    .form-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+    }
+    label { display: block; font-weight: bold; margin-bottom: 6px; }
+    input {
+      width: 100%; padding: 11px; border: 1px solid #b8c5d9;
+      border-radius: 7px; font-size: 15px;
+    }
+    .actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+    button {
+      border: 0; padding: 10px 15px; border-radius: 7px;
+      color: white; background: #1557b0; cursor: pointer; font-weight: bold;
+    }
+    button:hover { opacity: .88; }
+    .secondary { background: #64748b; }
+    .edit { background: #d18b00; }
+    .delete { background: #dc2626; }
+    .search-box { max-width: 420px; margin-bottom: 14px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    th, td { border: 1px solid #d7e0ed; padding: 10px; text-align: left; }
+    th { background: #e6efff; }
+    .empty { text-align: center; color: #64748b; }
+    #pesan { margin-top: 12px; font-weight: bold; color: #15803d; }
+    footer { text-align: center; padding: 15px; color: #64748b; }
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+      header h1 { font-size: 21px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Program Pengelolaan Data Mahasiswa</h1>
+    <p>Tugas Praktikum Logika dan Pemrograman — CRUD dan Pencarian Data</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Form Data Mahasiswa</h2>
+      <form id="formMahasiswa">
+        <div class="form-grid">
+          <div>
+            <label for="nim">NIM</label>
+            <input id="nim" type="text" placeholder="Contoh: 2311001" required>
+          </div>
+          <div>
+            <label for="nama">Nama Mahasiswa</label>
+            <input id="nama" type="text" placeholder="Masukkan nama" required>
+          </div>
+          <div>
+            <label for="prodi">Program Studi</label>
+            <input id="prodi" type="text" placeholder="Contoh: Informatika" required>
+          </div>
+          <div>
+            <label for="angkatan">Angkatan</label>
+            <input id="angkatan" type="number" min="2000" max="2100" placeholder="Contoh: 2026" required>
+          </div>
+          <div>
+            <label for="nilai">Nilai</label>
+            <input id="nilai" type="number" min="0" max="100" step="0.01" placeholder="0–100" required>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="submit" id="tombolSimpan">Tambah Data</button>
+          <button type="button" class="secondary" onclick="resetForm()">Bersihkan Form</button>
+        </div>
+        <p id="pesan" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Daftar Data Mahasiswa</h2>
+      <label for="pencarian">Cari berdasarkan NIM, nama, prodi, atau angkatan</label>
+      <input class="search-box" id="pencarian" type="search" placeholder="Ketik kata kunci pencarian..." oninput="tampilkanData()">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th><th>NIM</th><th>Nama</th><th>Program Studi</th>
+              <th>Angkatan</th><th>Nilai</th><th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="isiTabel"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <footer>Data tersimpan pada browser menggunakan localStorage.</footer>
+
+  <script>
+    // Array untuk menyimpan kumpulan objek data mahasiswa.
+    let dataMahasiswa = JSON.parse(localStorage.getItem("dataMahasiswa")) || [];
+    let indeksEdit = null;
+
+    // Menyimpan perubahan data ke penyimpanan browser.
+    function simpanKePenyimpanan() {
+      localStorage.setItem("dataMahasiswa", JSON.stringify(dataMahasiswa));
+    }
+
+    // Menampilkan data ke dalam tabel (perulangan).
+    function tampilkanData() {
+      const tabel = document.getElementById("isiTabel");
+      const kataKunci = document.getElementById("pencarian").value.toLowerCase();
+      tabel.innerHTML = "";
+
+      const hasil = dataMahasiswa.filter(function(m) {
+        return m.nim.toLowerCase().includes(kataKunci) ||
+          m.nama.toLowerCase().includes(kataKunci) ||
+          m.prodi.toLowerCase().includes(kataKunci) ||
+          String(m.angkatan).includes(kataKunci);
+      });
+
+      if (hasil.length === 0) {
+        tabel.innerHTML = '<tr><td colspan="7" class="empty">Data tidak ditemukan.</td></tr>';
+        return;
+      }
+
+      hasil.forEach(function(m, nomor) {
+        const baris = document.createElement("tr");
+        baris.innerHTML = `
+          <td>${nomor + 1}</td>
+          <td>${aman(m.nim)}</td>
+          <td>${aman(m.nama)}</td>
+          <td>${aman(m.prodi)}</td>
+          <td>${aman(m.angkatan)}</td>
+          <td>${aman(m.nilai)}</td>
+          <td>
+            <button class="edit" onclick="ubahData('${encodeURIComponent(m.nim)}')">Ubah</button>
+            <button class="delete" onclick="hapusData('${encodeURIComponent(m.nim)}')">Hapus</button>
+          </td>`;
+        tabel.appendChild(baris);
+      });
+    }
+
+    // Mencegah teks input dibaca sebagai kode HTML.
+    function aman(teks) {
+      return String(teks).replace(/[&<>"']/g, function(huruf) {
+        return {"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;"}[huruf];
+      });
+    }
+
+    // Create dan Update: dijalankan saat formulir dikirim.
+    document.getElementById("formMahasiswa").addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      const nim = document.getElementById("nim").value.trim();
+      const nama = document.getElementById("nama").value.trim();
+      const prodi = document.getElementById("prodi").value.trim();
+      const angkatan = Number(document.getElementById("angkatan").value);
+      const nilai = Number(document.getElementById("nilai").value);
+
+      // Percabangan untuk memeriksa kelengkapan dan rentang nilai.
+      if (!nim || !nama || !prodi || !angkatan || nilai < 0 || nilai > 100) {
+        tampilkanPesan("Periksa kembali data. Nilai harus antara 0 sampai 100.", true);
+        return;
+      }
+
+      const dataBaru = { nim, nama, prodi, angkatan, nilai };
+
+      if (indeksEdit === null) {
+        // NIM tidak boleh sama.
+        const sudahAda = dataMahasiswa.some(function(m) { return m.nim === nim; });
+        if (sudahAda) {
+          tampilkanPesan("NIM sudah terdaftar. Gunakan NIM lain.", true);
+          return;
+        }
+        dataMahasiswa.push(dataBaru); // CREATE
+        tampilkanPesan("Data mahasiswa berhasil ditambahkan.");
+      } else {
+        const nimDipakai = dataMahasiswa.some(function(m, i) {
+          return m.nim === nim && i !== indeksEdit;
+        });
+        if (nimDipakai) {
+          tampilkanPesan("NIM sudah digunakan oleh mahasiswa lain.", true);
+          return;
+        }
+        dataMahasiswa[indeksEdit] = dataBaru; // UPDATE
+        tampilkanPesan("Data mahasiswa berhasil diubah.");
+      }
+
+      simpanKePenyimpanan();
+      resetForm();
+      tampilkanData();
+    });
+
+    // Mengambil data yang dipilih dan memasukkannya kembali ke formulir.
+    function ubahData(nimTerenkode) {
+      const nim = decodeURIComponent(nimTerenkode);
+      indeksEdit = dataMahasiswa.findIndex(function(m) { return m.nim === nim; });
+      if (indeksEdit === -1) return;
+
+      const m = dataMahasiswa[indeksEdit];
+      document.getElementById("nim").value = m.nim;
+      document.getElementById("nama").value = m.nama;
+      document.getElementById("prodi").value = m.prodi;
+      document.getElementById("angkatan").value = m.angkatan;
+      document.getElementById("nilai").value = m.nilai;
+      document.getElementById("tombolSimpan").textContent = "Simpan Perubahan";
+      document.getElementById("pesan").textContent = "Mode ubah data aktif.";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // Delete: menghapus data setelah pengguna mengonfirmasi.
+    function hapusData(nimTerenkode) {
+      const nim = decodeURIComponent(nimTerenkode);
+      const yakin = confirm("Yakin ingin menghapus data dengan NIM " + nim + "?");
+      if (!yakin) return;
+
+      dataMahasiswa = dataMahasiswa.filter(function(m) { return m.nim !== nim; });
+      simpanKePenyimpanan();
+      tampilkanData();
+      tampilkanPesan("Data berhasil dihapus.");
+      if (indeksEdit !== null) resetForm();
+    }
+
+    // Mengosongkan formulir dan mengembalikan mode ke tambah data.
+    function resetForm() {
+      document.getElementById("formMahasiswa").reset();
+      indeksEdit = null;
+      document.getElementById("tombolSimpan").textContent = "Tambah Data";
+    }
+
+    function tampilkanPesan(teks, error = false) {
+      const elemen = document.getElementById("pesan");
+      elemen.textContent = teks;
+      elemen.style.color = error ? "#dc2626" : "#15803d";
+    }
+
+    // READ: tampilkan seluruh data saat halaman pertama kali dibuka.
+    tampilkanData();
+  </script>
+</body>
+</html>
